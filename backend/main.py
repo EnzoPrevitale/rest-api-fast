@@ -37,6 +37,14 @@ class User(Base):
     name = Column(String, index=True) # index=True: cria um índice sobre a coluna no banco de dados.
     email = Column(String, unique=True, index=True) # unique=True: define que cada registro tenha um valor único.
 
+class Dog(Base):
+    __tablename__ = "dogs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    age = Column(Integer, index=True)
+    breed = Column(String, index=True)
+
 # Cria a tabela do banco de dados.
 Base.metadata.create_all(bind=engine)
 
@@ -60,6 +68,18 @@ class UserResponse(BaseModel):
     id: int
     name: str
     email: str
+
+# Cachorros
+class DogCreate(BaseModel):
+    name: str
+    age: int
+    breed: str
+
+class DogResponse(BaseModel):
+    id: int
+    name: str
+    age: int
+    breed: str
 
 
 @app.post("/users/", response_model=UserResponse) # Chama a função ao receber uma requisição POST no endpoint. response_model=User: informa que a função retornará algo no modelo User declarado acima.
@@ -105,5 +125,18 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     db.delete(db_user)
     db.commit()
     return db_user
+
+@app.post("/dogs/", response_model=DogResponse)
+def create_dog(dog: DogCreate, db: Session = Depends(get_db)):
+    db_dog = Dog(name=dog.name, age=dog.age, breed=dog.breed)
+    db.add(db_dog)
+    db.commit()
+    db.refresh(db_dog)
+    return db_dog
+
+@app.get("/dogs/", response_model=List[DogResponse])
+def read_dogs(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    dogs = db.query(Dog).offset(skip).limit(limit).all()
+    return dogs
 
 # uvicorn main:app --reload
